@@ -78,13 +78,25 @@ export default function App() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.nome || !formData.procedimento || !formData.data || !formData.horario) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
 
+    // Envia automaticamente para a API Serverless na Vercel
+    try {
+      await fetch('/api/agendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+    } catch (err) {
+      console.error('Erro ao salvar na agenda:', err);
+    }
+
+    // Abre o WhatsApp para confirmação direta com a cliente
     const mensagem = encodeURIComponent(
       `Olá! Gostaria de confirmar um agendamento no Luciana Ribeiro Studio:\n\n` +
       `👤 *Cliente:* ${formData.nome}\n` +
