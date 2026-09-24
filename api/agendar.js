@@ -12,21 +12,30 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Trata a chave privada para aceitar formatos com \\n e quebras reais
-    const rawKey = process.env.GOOGLE_PRIVATE_KEY || '';
-    const formattedKey = rawKey.replace(/\\n/g, '\n').replace(/"/g, '');
+    // 1. Trata a string da chave privada
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY || '';
 
+    // Remove aspas nas pontas se existirem
+    privateKey = privateKey.trim().replace(/^["']|["']$/g, '');
+
+    // Converte os \n literais em quebras de linha reais exigidas pelo OpenSSL
+    privateKey = privateKey.replace(/\\n/g, '\n');
+
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL?.trim();
+    const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
+
+    // 2. Autenticação na API do Google
     const auth = new google.auth.GoogleAuth({
       credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: formattedKey,
+        client_email: clientEmail,
+        private_key: privateKey,
       },
       scopes: ['https://www.googleapis.com/auth/calendar.events'],
     });
 
     const calendar = google.calendar({ version: 'v3', auth });
 
-    // Calcula horário final (adiciona 1h30min ao horário inicial)
+    // 3. Monta horário com fuso horário do Brasil (America/Sao_Paulo)
     const [hora, minuto] = horario.split(':').map(Number);
     let horaFim = hora + 1;
     let minutoFim = minuto + 30;
@@ -42,7 +51,7 @@ export default async function handler(req, res) {
 
     const event = {
       summary: `${procedimento} - ${nome}`,
-      description: `Agendamento efetuado via site por ${nome}.`,
+      description: `Agendamento efetuado via site para ${nome}.`,
       start: {
         dateTime: startISO,
         timeZone: 'America/Sao_Paulo',
@@ -53,21 +62,23 @@ export default async function handler(req, res) {
       },
     };
 
+    // 4. Insere o evento no Google Calendar
     const response = await calendar.events.insert({
-      calendarId: process.env.GOOGLE_CALENDAR_ID,
+      calendarId: calendarId,
       requestBody: event,
     });
 
     return res.status(200).json({ 
       success: true, 
-      message: 'Agendamento adicionado ao Google Calendar!',
-      eventId: response.data.id
+      message: 'Agendado com sucesso no Google Calendar!',
+      eventId: response.data.id 
     });
+
   } catch (error) {
-    console.error('Erro no Google Calendar API:', error);
+    console.error('Erro na API do Google Calendar:', error);
     return res.status(500).json({ 
       success: false, 
-      error: error.message || 'Erro interno na API do Google Calendar' 
+      error: error.message 
     });
   }
 }
