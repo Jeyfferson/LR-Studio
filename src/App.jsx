@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Scissors, CheckCircle, Sparkles, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, CheckCircle, Sparkles } from 'lucide-react';
 
-const FOTO_STUDIO = '/img/logo.png';
+const FOTO_STUDIO = '/img/logo.png'; 
 
 export default function App() {
   const [formData, setFormData] = useState({
@@ -11,13 +11,12 @@ export default function App() {
     horario: ''
   });
 
-  const [agendamentos, setAgendamentos] = useState([]);
   const [sucesso, setSucesso] = useState(false);
 
   // NUMERO DO WHATSAPP DO STUDIO
   const TELEFONE_STUDIO = '5541999999999'; 
 
-  // Lista de Serviços do Studio
+  // Lista de Serviços
   const SERVICOS = [
     {
       id: 'corte',
@@ -49,13 +48,6 @@ export default function App() {
     }
   ];
 
-  useEffect(() => {
-    const salvos = localStorage.getItem('agendamentos_luciana_studio');
-    if (salvos) {
-      setAgendamentos(JSON.parse(salvos));
-    }
-  }, []);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -65,22 +57,33 @@ export default function App() {
     document.getElementById('agendamento').scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Gerador de link para o Google Agenda
+  const gerarLinkGoogleCalendar = (dataStr, horarioStr, procedimento, nomeCliente) => {
+    try {
+      const dataInicio = new Date(`${dataStr}T${horarioStr}:00`);
+      const dataFim = new Date(dataInicio.getTime() + 90 * 60000);
+
+      const formatarDataIso = (d) => d.toISOString().replace(/-|:|\.\d+/g, '');
+
+      const start = formatarDataIso(dataInicio);
+      const end = formatarDataIso(dataFim);
+
+      const title = encodeURIComponent(`${procedimento} - Luciana Ribeiro Studio`);
+      const details = encodeURIComponent(`Agendamento de ${nomeCliente} (${procedimento}) via site Luciana Ribeiro Studio.`);
+      const location = encodeURIComponent(`Luciana Ribeiro Studio`);
+
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;
+    } catch (e) {
+      return '#';
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.nome || !formData.procedimento || !formData.data || !formData.horario) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
-
-    const novoAgendamento = {
-      id: Date.now(),
-      ...formData,
-      status: 'Confirmado'
-    };
-
-    const listaAtualizada = [novoAgendamento, ...agendamentos];
-    setAgendamentos(listaAtualizada);
-    localStorage.setItem('agendamentos_luciana_studio', JSON.stringify(listaAtualizada));
 
     const mensagem = encodeURIComponent(
       `Olá! Gostaria de confirmar um agendamento no Luciana Ribeiro Studio:\n\n` +
@@ -110,12 +113,11 @@ export default function App() {
         <nav className="hidden md:flex gap-8 text-sm font-medium text-[#665e55]">
           <a href="#agendamento" className="hover:text-[#c5a059] transition">Início</a>
           <a href="#servicos" className="hover:text-[#c5a059] transition">Serviços</a>
-          <a href="#historico" className="hover:text-[#c5a059] transition">Meus Agendamentos</a>
         </nav>
 
         <button 
           onClick={() => document.getElementById('agendamento').scrollIntoView({ behavior: 'smooth' })}
-          className="border border-[#c5a059] text-[#c5a059] hover:bg-[#c5a059] hover:text-white font-semibold px-5 py-2 rounded-full text-sm transition-all shadow-sm"
+          className="border border-[#c5a059] text-[#c5a059] hover:bg-[#c5a059] hover:text-white font-semibold px-5 py-2 rounded-full text-sm transition-all shadow-sm cursor-pointer"
         >
           Agendar agora
         </button>
@@ -124,12 +126,13 @@ export default function App() {
       {/* SEÇÃO PRINCIPAL (HERO + FORMULÁRIO) */}
       <main id="agendamento" className="max-w-7xl mx-auto w-full px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         
-        {/* COLUNA ESQUERDA: FORMULÁRIO DE AGENDAMENTO */}
+        {/* COLUNA ESQUERDA: FORMULÁRIO */}
         <div className="lg:col-span-5 bg-[#f4efe6] p-8 rounded-3xl border border-[#e2d7c5] shadow-xl relative overflow-hidden">
           
           <span className="text-[#c5a059] text-xs font-bold tracking-widest uppercase mb-2 block">
             SUA MELHOR VERSÃO COMEÇA AQUI
           </span>
+
           <h1 className="text-3xl font-extrabold tracking-tight mb-3 text-[#2a2521]">
             AGENDE SEU HORÁRIO
           </h1>
@@ -142,17 +145,29 @@ export default function App() {
               <CheckCircle className="w-12 h-12 text-[#c5a059] mx-auto" />
               <h3 className="text-xl font-bold text-[#2a2521]">Agendamento Enviado!</h3>
               <p className="text-sm text-[#736a60]">
-                Sua solicitação para <strong className="text-[#2a2521]">{formData.procedimento}</strong> no dia <strong className="text-[#2a2521]">{formData.data}</strong> foi salva e encaminhada via WhatsApp.
+                Sua solicitação para <strong className="text-[#2a2521]">{formData.procedimento}</strong> no dia <strong className="text-[#2a2521]">{formData.data}</strong> foi encaminhada via WhatsApp.
               </p>
-              <button 
-                onClick={() => {
-                  setFormData({ nome: '', procedimento: '', data: '', horario: '' });
-                  setSucesso(false);
-                }}
-                className="w-full bg-[#c5a059] text-white font-bold py-3 rounded-xl text-sm uppercase hover:bg-[#b08c47] transition shadow-md cursor-pointer"
-              >
-                Novo Agendamento
-              </button>
+
+              <div className="space-y-2 pt-2">
+                <a
+                  href={gerarLinkGoogleCalendar(formData.data, formData.horario, formData.procedimento, formData.nome)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-white hover:bg-[#f4efe6] text-[#c5a059] border border-[#c5a059] font-bold py-3 px-4 rounded-xl text-xs uppercase transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Calendar className="w-4 h-4" /> Adicionar ao Meu Google Agenda
+                </a>
+
+                <button 
+                  onClick={() => {
+                    setFormData({ nome: '', procedimento: '', data: '', horario: '' });
+                    setSucesso(false);
+                  }}
+                  className="w-full bg-[#c5a059] text-white font-bold py-3 rounded-xl text-xs uppercase hover:bg-[#b08c47] transition shadow-md cursor-pointer"
+                >
+                  Fazer Novo Agendamento
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -275,8 +290,6 @@ export default function App() {
           ))}
         </div>
       </section>
-
-      
 
       {/* RODAPÉ */}
       <footer className="text-center py-6 text-xs text-[#8c8275] border-t border-[#e8dfd1]">
