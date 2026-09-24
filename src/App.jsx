@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, Scissors, CheckCircle, Sparkles, Check } from 'lucide-react';
 
-const FOTO_STUDIO = '../public/img/logo.png'; 
+const FOTO_STUDIO = '/public/img/logo.png'; 
 
 export default function App() {
   const [formData, setFormData] = useState({
