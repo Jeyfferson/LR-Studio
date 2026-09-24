@@ -14,7 +14,7 @@ export default function App() {
   const [sucesso, setSucesso] = useState(false);
 
   // NUMERO DO WHATSAPP DO STUDIO
-  const TELEFONE_STUDIO = '5541999999999'; 
+  const TELEFONE_STUDIO = '5541999353946'; 
 
   // Lista de Serviços
   const SERVICOS = [
